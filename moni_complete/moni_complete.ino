@@ -109,7 +109,8 @@ void setupAirQualitySensor() {
 }
 
 int getAirQuality() {
-  return airqualitysensor.first_vol;
+  //int curr_quality=airqualitysensor.slope(); // no idea why needed
+  return analogRead(A5);
 }
 
 ISR(TIMER1_OVF_vect)
@@ -136,7 +137,7 @@ ISR(TIMER1_OVF_vect)
 
 
 void setup() {
-  //Serial.begin(9600);
+  Serial.begin(9600);
   setupLEDMatrix();
   setupAirQualitySensor();
   setupServo(servoPin);
@@ -145,6 +146,8 @@ void setup() {
 void loop() {
   showMeasureAnimation(); // has delays included. takes some time.
   currentQuality = getAirQuality();
+  Serial.println("Air quality:");
+  Serial.println(currentQuality);
   displayResult(currentQuality); // has no delay included
   rotateServo(servoRotation); 
   delay(loopTimer); // time that result is displayed before new measurement starts
