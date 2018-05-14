@@ -1,31 +1,6 @@
-///////////////////////////////////
-// SETTINGS //////////////////////
-/////////////////////////////////
-// TODO: Werte müssen angepasst werden
-int pollution_80 = 80;
-int pollution_70 = 70;
-int pollution_60 = 60;
-int pollution_50 = 50;
-int pollution_40 = 40;
-int pollution_30 = 30;
-int pollution_20 = 20;
-int pollution_10 = 10;
-
-int servoRotation = 80;
-
-
-///////////////////////////////////
-// GENERAL ///////////////////////
-/////////////////////////////////
-#include"AirQuality.h"
-#include"Arduino.h"
+#include <Arduino.h>
 #include <Servo.h>
-int currentQuality;
-int loop_count;
-
-/* TIMING VARIABLES */
-unsigned long previous_time = 0;
-const long interval = 1000;
+#include"AirQuality.h"
 
 ///////////////////////////////////
 // LED ///////////////////////////
@@ -44,22 +19,31 @@ uint8_t rowPins[8]={ A3, 12, 2, A0, 9, 3, 8, 5 };
 uint8_t colPins[8]={ 13, 7, 6, A2, 4, A1, 11, 10 };
 
 
+/* POLLUTION THRESHOLDS */
+int pollution_80 = 80;
+int pollution_70 = 70;
+int pollution_60 = 60;
+int pollution_50 = 50;
+int pollution_40 = 40;
+int pollution_30 = 30;
+int pollution_20 = 20;
+int pollution_10 = 10;
 
-///////////////////////////////////
-// SERVO /////////////////////////
-/////////////////////////////////
-Servo servo;
-int servoPin = 1;
-boolean servoDown = true;
+int servoRotation = 80;
 
+/* GENERAL VARIABLES */
+int currentQuality;
+int loop_count;
 
-void setupServo(int connector) {
-  servo.attach(connector);
-}
+/* SERVO VARIABLES */
+Servo myservo;
+int pos = 0;
+boolean isDown = true;
+int rotation = 90;
 
-void rotateServo(int degree) {
-    servo.write(degree);
-}
+/* TIMING VARIABLES */
+unsigned long previous_time = 0;
+const long interval = 3000;
 
 
 
@@ -89,7 +73,26 @@ void LED_setValueToRow(int row, unsigned char byte_array){
   bytes[row] = byte_array;
 }
 
-void showMeasureAnimation() {
+void calibrateServo(){
+  myservo.attach(1);
+  myservo.write(0);
+  myservo.detach();
+}
+
+void rotateServoUp(){
+  myservo.attach(1);
+  myservo.write(rotation);
+  delay(500);
+  isDown = false;
+  myservo.detach();
+}
+
+void rotateServoDown(){
+  myservo.attach(1);
+  myservo.write(0);
+  delay(500);
+  isDown = true;
+  myservo.detach();
 }
 
 void displayResult(int input) {
@@ -112,48 +115,75 @@ void displayResult(int input) {
     if (input < pollution_10) {
       LED_setValueToRow(loop_count, zero);
 
-      Serial.print(input);
-      Serial.print(" NO POLLUTION \n");
+      //Serial.print(input);
+      //Serial.print(" NO POLLUTION \n");
+      if(!isDown){
+          rotateServoDown();
+      }
     }
     else if (input < pollution_20) {
       LED_setValueToRow(loop_count, one);
-      Serial.print(input);
-      Serial.print(" LOW \n");
+      //Serial.print(input);
+      //Serial.print(" LOW \n");
+      if(!isDown){
+          rotateServoDown();
+      }
     }
     else if (input < pollution_30) {
       LED_setValueToRow(loop_count, two);
-      Serial.print(input);
-      Serial.print(" LOW \n");
+      //Serial.print(input);
+      //Serial.print(" LOW \n");
+      if(!isDown){
+          rotateServoDown();
+      }
     }
     else if (input < pollution_40) {
       LED_setValueToRow(loop_count, three);
-      Serial.print(input);
-      Serial.print(" MED \n");
+      //Serial.print(input);
+      //Serial.print(" MED \n");
+      if(!isDown){
+          rotateServoDown();
+      }
     }
     else if (input < pollution_50) {
       LED_setValueToRow(loop_count, four);
-      Serial.print(input);
-      Serial.print(" MED \n");
+      //Serial.print(input);
+      //Serial.print(" MED \n");
+      if(!isDown){
+          rotateServoDown();
+      }
     }
     else if (input < pollution_60) {
       LED_setValueToRow(loop_count, five);
-      Serial.print(input);
-      Serial.print(" HIGH \n");
+      //Serial.print(input);
+      //Serial.print(" HIGH \n");
+      if(isDown){
+          rotateServoUp();
+      }
     }
     else if (input < pollution_70) {
       LED_setValueToRow(loop_count, six);
-      Serial.print(input);
-      Serial.print(" HIGH \n");
+      //Serial.print(input);
+      //Serial.print(" HIGH \n");
+      if(isDown){
+          rotateServoUp();
+      }
     }
     else if (input < pollution_80) {
       LED_setValueToRow(loop_count, seven);
-      Serial.print(input);
-      Serial.print(" SUPER HIGH \n");
+      //Serial.print(input);
+      //Serial.print(" SUPER HIGH \n");
+      if(isDown){
+          rotateServoUp();
+      }
     }
     else if (input > pollution_80) {
       LED_setValueToRow(loop_count, eight);
-      Serial.print(input);
-      Serial.print(" SUPER HIGH \n");
+      //Serial.print(input);
+      //Serial.print(" SUPER HIGH \n");
+      if(isDown){
+          rotateServoUp();
+      }
     }
 
     loop_count++;
@@ -176,13 +206,8 @@ int getAirQuality() {
   return airqualitysensor.first_vol;
 }
 
-
-/////////////////////////////////
-// ARDUINO CORE /////////////////
-/////////////////////////////////
 void setup() {
-  Serial.begin(9600);
-  setupServo(servoPin);
+  calibrateServo();
   setupLEDMatrix();
   setupAirQualitySensor();
 }
@@ -201,7 +226,7 @@ ISR(TIMER1_OVF_vect)
       airqualitysensor.last_vol    = airqualitysensor.first_vol;
       airqualitysensor.first_vol   = analogRead(A5);
       airqualitysensor.counter     = 0;
-      airqualitysensor.timer_index = 1;
+      airqualitysensor.timer_index = 150;
       PORTB=PORTB^0x20;
   }
   else
