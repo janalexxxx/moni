@@ -43,10 +43,33 @@ unsigned char zero       = B00000000;
 uint8_t rowPins[8]={ A3, 12, 2, A0, 9, 3, 8, 5 };
 uint8_t colPins[8]={ 13, 7, 6, A2, 4, A1, 11, 10 };
 
+
+
+///////////////////////////////////
+// SERVO /////////////////////////
+/////////////////////////////////
+Servo servo;
+int servoPin = 1;
+boolean servoDown = true;
+
+
+void setupServo(int connector) {
+  servo.attach(connector);
+}
+
+void rotateServo(int degree) {
+    servo.write(degree);
+}
+
+
+
+///////////////////////////////////
+// LED ///////////////////////////
+/////////////////////////////////
 void setupLEDMatrix() {
   for(int i = 0; i < 8; i++) {
-    pinMode(colPins[i],OUTPUT);
-    pinMode(rowPins[i],OUTPUT);
+    pinMode(colPins[i], OUTPUT);
+    pinMode(rowPins[i], OUTPUT);
   }
 }
 
@@ -70,12 +93,22 @@ void showMeasureAnimation() {
 }
 
 void displayResult(int input) {
+  //DEBUG Without Air Quality SENSOR
+  input = random(0, 100);
+
+
   unsigned long current_time = millis();
   if(current_time - previous_time >= interval){
     previous_time = current_time;
 
-    
     loop_count = loop_count % 8;
+
+    //TODO: Fix display Reset function
+    if(loop_count == 0){
+      Serial.print("Display Reset \n");
+      setLEDMatrix(bytes);
+    }
+
     if (input < pollution_10) {
       LED_setValueToRow(loop_count, zero);
 
@@ -123,33 +156,10 @@ void displayResult(int input) {
       Serial.print(" SUPER HIGH \n");
     }
 
-
     loop_count++;
   }
 }
 
-
-///////////////////////////////////
-// SERVO /////////////////////////
-/////////////////////////////////
-Servo myServo;
-int servoPin = 1;
-boolean servoDown = true;
-
-
-void setupServo(int connector) {
-  myServo.attach(connector);
-}
-
-void rotateServo(int degree) {
-  if (servoDown) {
-    myServo.write(degree);
-    servoDown = false;
-  } else {
-    myServo.write(0);
-    servoDown = true;
-  }
-}
 
 ///////////////////////////////////
 // AIR QUALITY SENSOR ////////////
@@ -166,24 +176,27 @@ int getAirQuality() {
   return airqualitysensor.first_vol;
 }
 
+
+/////////////////////////////////
+// ARDUINO CORE /////////////////
+/////////////////////////////////
 void setup() {
   Serial.begin(9600);
+  setupServo(servoPin);
   setupLEDMatrix();
   setupAirQualitySensor();
-  //setupServo(servoPin);
 }
 
 void loop() {
   setLEDMatrix(bytes);
   currentQuality = getAirQuality();
-  displayResult(currentQuality); // has no delay included
-  //rotateServo(servoRotation);
+  displayResult(currentQuality);
 }
 
 
 ISR(TIMER1_OVF_vect)
 {
-  if(airqualitysensor.counter == 61)//set 2 seconds as a detected duty
+  if(airqualitysensor.counter == 61) //set 2 seconds as a detected duty
   {
       airqualitysensor.last_vol    = airqualitysensor.first_vol;
       airqualitysensor.first_vol   = analogRead(A5);
