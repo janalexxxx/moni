@@ -21,8 +21,11 @@ int servoRotation = 80;
 #include"Arduino.h"
 #include <Servo.h>
 int currentQuality;
-unsigned long time_since_startup;
 int loop_count;
+
+/* TIMING VARIABLES */
+unsigned long previous_time = 0;
+const long interval = 1000;
 
 ///////////////////////////////////
 // LED ///////////////////////////
@@ -67,10 +70,11 @@ void showMeasureAnimation() {
 }
 
 void displayResult(int input) {
-  time_since_startup = millis();
-  if(time_since_startup % 1000 == 0){
-    //Logging time in Miliseconds
-    //Serial.print(time_since_startup);
+  unsigned long current_time = millis();
+  if(current_time - previous_time >= interval){
+    previous_time = current_time;
+
+    
     loop_count = loop_count % 8;
     if (input < pollution_10) {
       LED_setValueToRow(loop_count, zero);
